@@ -27,6 +27,7 @@ class CMakeBuild(build_ext):
         cmake_args = [
             "cmake", project_root, 
             f"-DUSE_FLASHINFER={use_flashinfer}",
+            "-DCMAKE_CUDA_ARCHITECTURES=75",
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={output_dir}",
             f"-DPYTHON_EXECUTABLE={sys.executable}" # 确保 CMake 知道用哪个 Python
         ]
