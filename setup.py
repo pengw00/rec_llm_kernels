@@ -11,8 +11,13 @@ setup(
             extra_compile_args={
                 'cxx': ['-O3'],
                 # 'nvcc': ['-O3', '--use_fast_math', '-gencode', 'arch=compute_80,code=sm_80']
-                'nvcc': ['-O3', '--use_fast_math', '-gencode', 'arch=compute_75,code=sm_75']
-
+                # 'nvcc': ['-O3', '--use_fast_math', '-gencode', 'arch=compute_75,code=sm_75']
+                'nvcc': [
+                    '-O3', 
+                    '--use_fast_math', 
+                    '-gencode', 'arch=compute_75,code=sm_75',
+                    '--expt-relaxed-constexpr' # Adds compatibility for newer CUDA
+                ]
             }
         )
     ],
