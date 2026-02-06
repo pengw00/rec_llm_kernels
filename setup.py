@@ -21,10 +21,12 @@ class CMakeBuild(build_ext):
         print(f"--- Build Temp Dir: {build_temp} ---")
         print(f"--- Output Dir: {output_dir} ---")
 
+        use_flashinfer = "ON" if os.environ.get("USE_FLASHINFER") == "1" else "OFF"
+        print(f"--- FlashInfer Option: {use_flashinfer} ---")
         # 运行 CMake 配置，传入 project_root 作为源码目录
         cmake_args = [
             "cmake", project_root, 
-            "-DUSE_FLASHINFER=OFF", # 或者从环境变量读取
+            f"-DUSE_FLASHINFER={use_flashinfer}",
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={output_dir}",
             f"-DPYTHON_EXECUTABLE={sys.executable}" # 确保 CMake 知道用哪个 Python
         ]
