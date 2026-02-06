@@ -23,7 +23,12 @@ else()
     message(STATUS "FlashInfer integration disabled.")
 endif()
 
-# ... (后续寻找 Torch 的代码不变) ...
+# 1. 寻找 PyTorch 的依赖路径（这部分你已经有了）
+execute_process(COMMAND python3 -c "import torch; print(torch.utils.cmake_prefix_path)" 
+                OUTPUT_VARIABLE TORCH_CMAKE_PATH 
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+list(APPEND CMAKE_PREFIX_PATH ${TORCH_CMAKE_PATH})
+find_package(Torch REQUIRED)
 
 # 编译你的算子库
 add_library(rec_llm_kernels_lib SHARED csrc/flash_att.cu csrc/binding.cpp)
