@@ -23,6 +23,10 @@ else()
     message(STATUS "FlashInfer integration disabled.")
 endif()
 
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    set(CMAKE_CUDA_ARCHITECTURES 70 75 80 86 89 90) # 覆盖常用的现代架构
+endif()
+
 # 1. 寻找 Python 开发库（新增）
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
