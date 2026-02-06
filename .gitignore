@@ -1,6 +1,8 @@
 cat <<EOF > .gitignore
 venv/
 build/
+rec_llm_kernels/*.so
+# dist/
 *.egg-info/
 __pycache__/
 *.so

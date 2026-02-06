@@ -1,3 +1,11 @@
+## 📂 Project Structure
+- `csrc/`: Raw C++/CUDA source code (The "Muscle").
+- `rec_llm_kernels/`: Python package wrapper (The "Brain").
+  - `_C.so`: (Generated after build) The compiled binary.
+  - `ops.py`: High-level Python interface for the kernels.
+- `setup.py`: The build script that links C++ to Python.
+
+
 # Create and activate venv
 python3 -m venv venv
 source venv/bin/activate
@@ -23,5 +31,9 @@ python setup.py build_ext --inplace
 ```
 pip install ninja
 MAX_JOBS=4 pip install -e .
+```
+
+```
+USE_FLASHINFER=1 pip install -e .
 ```
 
