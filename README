@@ -1,0 +1,27 @@
+# Create and activate venv
+python3 -m venv venv
+source venv/bin/activate
+
+# Install core dependencies
+```
+pip install torch setuptools wheel ninja
+```
+
+# This will trigger the initial CUDA compilation
+```
+pip install -e .
+```
+
+3. Compiling C++/CUDA Kernels
+If you modify any files in csrc/ (.cu or .cpp), you must recompile the binary:
+Option A: Fast In-place Build (Recommended for Debugging)
+This generates the .so binary directly in your project folder for immediate testing.
+
+python setup.py build_ext --inplace
+
+# Option B: Clean Build (Recommended for Production)
+```
+pip install ninja
+MAX_JOBS=4 pip install -e .
+```
+
