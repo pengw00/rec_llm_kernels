@@ -2,6 +2,9 @@ import os
 import subprocess
 import sys # 需要引入 sys
 
+from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext 
+
 class CMakeBuild(build_ext):
     def run(self):
         # 1. 获取项目根目录的绝对路径
