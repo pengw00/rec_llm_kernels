@@ -36,4 +36,8 @@ find_package(Torch REQUIRED)
 # 编译你的算子库
 add_library(rec_llm_kernels_lib SHARED csrc/flash_att.cu csrc/binding.cpp)
 set_target_properties(rec_llm_kernels_lib PROPERTIES PREFIX "" OUTPUT_NAME "_C")
+target_include_directories(rec_llm_kernels_lib PRIVATE 
+    ${Torch_INCLUDE_DIRS}
+    ${Python3_INCLUDE_DIRS} 
+)
 target_link_libraries(rec_llm_kernels_lib ${TORCH_LIBRARIES})
