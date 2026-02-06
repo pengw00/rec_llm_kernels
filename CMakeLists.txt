@@ -9,7 +9,7 @@ if(USE_FLASHINFER)
     include(FetchContent)
     FetchContent_Declare(
         flashinfer
-        GIT_REPOSITORY https://github.com
+        GIT_REPOSITORY https://github.com/flashinfer-ai/flashinfer.git
         GIT_TAG        v0.1.6
         GIT_SHALLOW    TRUE
     )
