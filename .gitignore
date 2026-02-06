@@ -1,0 +1,9 @@
+cat <<EOF > .gitignore
+venv/
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.so
+.DS_Store
+EOF
