@@ -23,7 +23,10 @@ else()
     message(STATUS "FlashInfer integration disabled.")
 endif()
 
-# 1. 寻找 PyTorch 的依赖路径（这部分你已经有了）
+# 1. 寻找 Python 开发库（新增）
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+
+# 2. 寻找 PyTorch 的依赖路径（这部分你已经有了）
 execute_process(COMMAND python3 -c "import torch; print(torch.utils.cmake_prefix_path)" 
                 OUTPUT_VARIABLE TORCH_CMAKE_PATH 
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
