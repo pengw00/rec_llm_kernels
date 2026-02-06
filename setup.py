@@ -34,3 +34,9 @@ class CMakeBuild(build_ext):
         # 运行编译
         subprocess.check_call(["cmake", "--build", "."], cwd=build_temp)
 
+setup(
+    name="rec_llm_kernels",
+    ext_modules=[Extension("rec_llm_kernels._C", sources=[])],
+    cmdclass={"build_ext": CMakeBuild},
+    packages=['rec_llm_kernels'] # <--- 添加这行，告诉 pip 哪里是源码包
+)
