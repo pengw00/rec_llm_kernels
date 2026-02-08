@@ -1,6 +1,7 @@
 #include <torch/extension.h>
 #include <cuda_runtime.h>
 #include <ATen/cuda/CUDAContext.h>
+#include <c10/cuda/CUDAGuard.h>
 
 // 向量化访存：一次读取 16 bytes (对应 8 个 bfloat16 或 4 个 float)
 // 这能极大提升 A100 显存带宽利用率
