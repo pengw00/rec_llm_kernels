@@ -33,15 +33,16 @@ execute_process(COMMAND python3 -c "import torch; print(torch.utils.cmake_prefix
 list(APPEND CMAKE_PREFIX_PATH ${TORCH_CMAKE_PATH})
 find_package(Torch REQUIRED)
 
-target_compile_options(rec_llm_kernels_lib PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:-arch=sm_80 --use_fast_math>
-)
-
 # 编译你的算子库
 add_library(rec_llm_kernels_lib SHARED
     csrc/flash_att.cu
     csrc/paged_cache.cu
     csrc/binding.cpp)
+
+target_compile_options(rec_llm_kernels_lib PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:-arch=sm_80 --use_fast_math>
+)
+
 set_target_properties(rec_llm_kernels_lib PROPERTIES PREFIX "" OUTPUT_NAME "_C")
 target_include_directories(rec_llm_kernels_lib PRIVATE 
     ${Torch_INCLUDE_DIRS}
