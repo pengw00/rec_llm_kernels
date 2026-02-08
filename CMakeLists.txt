@@ -27,7 +27,7 @@ endif()
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
 # 2. 寻找 PyTorch 的依赖路径（这部分你已经有了）
-execute_process(COMMAND python3 -c "import torch; print(torch.utils.cmake_prefix_path)" 
+execute_process(COMMAND python3 -c "import torch; print(int(torch._C._GLIBCXX_USE_CXX11_ABI))" 
                 OUTPUT_VARIABLE TORCH_CMAKE_PATH 
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 list(APPEND CMAKE_PREFIX_PATH ${TORCH_CMAKE_PATH})
@@ -41,6 +41,10 @@ add_library(rec_llm_kernels_lib SHARED
 
 target_compile_options(rec_llm_kernels_lib PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:-arch=sm_80 --use_fast_math>
+)
+
+target_compile_definitions(rec_llm_kernels_lib PRIVATE 
+    _GLIBCXX_USE_CXX11_ABI=${TORCH_ABI_VERSION}
 )
 
 set_target_properties(rec_llm_kernels_lib PROPERTIES PREFIX "" OUTPUT_NAME "_C")
