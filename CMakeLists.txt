@@ -26,11 +26,31 @@ endif()
 # 1. 寻找 Python 开发库（新增）
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
-# 2. 寻找 PyTorch 的依赖路径（这部分你已经有了）
-execute_process(COMMAND python3 -c "import torch; print(int(torch._C._GLIBCXX_USE_CXX11_ABI))" 
-                OUTPUT_VARIABLE TORCH_CMAKE_PATH 
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-list(APPEND CMAKE_PREFIX_PATH ${TORCH_CMAKE_PATH})
+# 1. 获取 CMake 搜索路径 (Prefix Path)
+execute_process(
+    COMMAND python3 -c "import torch; print(torch.utils.cmake_prefix_path)"
+    OUTPUT_VARIABLE TORCH_CMAKE_PATH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+list(APPEND CMAKE_PREFIX_PATH "${TORCH_CMAKE_PATH}")
+
+# 2. 获取 ABI 状态 (0 或 1)
+execute_process(
+    COMMAND python3 -c "import torch; print(int(torch._C._GLIBCXX_USE_CXX11_ABI))" 
+    OUTPUT_VARIABLE TORCH_ABI_VALUE  # 注意：这里改名为 ABI 专用变量
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# 3. 核心修复：将获取到的 1 传递给编译器
+if("${TORCH_ABI_VALUE}" STREQUAL "")
+    set(TORCH_ABI_VALUE "1") # 兜底逻辑：如果获取失败，Colab 环境通常为 1
+endif()
+
+# --- 3. 应用配置 ---
+list(APPEND CMAKE_PREFIX_PATH "${TORCH_INSTALL_PATH}") # 使用路径变量
+add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=${TORCH_ABI_VALUE}) # 使用 ABI 变量
+
+# --- 4. 正式查找 ---
 find_package(Torch REQUIRED)
 
 # 编译你的算子库
