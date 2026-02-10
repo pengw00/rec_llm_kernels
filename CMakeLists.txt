@@ -41,6 +41,8 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+message(STATUS "[DEBUG] 探测到的 PyTorch ABI 值: ${TORCH_ABI_VALUE}")
+
 # 3. 核心修复：将获取到的 1 传递给编译器
 if("${TORCH_ABI_VALUE}" STREQUAL "")
     set(TORCH_ABI_VALUE "1") # 兜底逻辑：如果获取失败，Colab 环境通常为 1
@@ -52,6 +54,18 @@ add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=${TORCH_ABI_VALUE}) # 使用 ABI 
 
 # --- 4. 正式查找 ---
 find_package(Torch REQUIRED)
+
+message(STATUS "-------------------------------------------")
+message(STATUS "Check Torch ABI from CMake:")
+
+# 尝试打印 Torch 自动带入的定义
+get_target_property(TORCH_DEFS torch_cuda INTERFACE_COMPILE_DEFINITIONS)
+message(STATUS "Torch CUDA Definitions: ${TORCH_DEFS}")
+
+# 打印你通过 execute_process 抓取的变量（假设你变量名是 DETECTED_ABI）
+message(STATUS "My Detected ABI Variable: '${DETECTED_ABI}'")
+message(STATUS "-------------------------------------------")
+
 
 # 编译你的算子库
 add_library(rec_llm_kernels_lib SHARED
