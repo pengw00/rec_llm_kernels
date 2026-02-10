@@ -62,11 +62,6 @@ message(STATUS "Check Torch ABI from CMake:")
 get_target_property(TORCH_DEFS torch_cuda INTERFACE_COMPILE_DEFINITIONS)
 message(STATUS "Torch CUDA Definitions: ${TORCH_DEFS}")
 
-# 打印你通过 execute_process 抓取的变量（假设你变量名是 DETECTED_ABI）
-message(STATUS "My Detected ABI Variable: '${DETECTED_ABI}'")
-message(STATUS "-------------------------------------------")
-
-
 # 编译你的算子库
 add_library(rec_llm_kernels_lib SHARED
     csrc/flash_att.cu
