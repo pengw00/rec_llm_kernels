@@ -52,6 +52,7 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${TORCH_INSTALL_PATH}") # 使用路径变量
 add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=${TORCH_ABI_VALUE}) # 使用 ABI 变量
 
+set(USE_KINETO OFF)
 # --- 4. 正式查找 ---
 find_package(Torch REQUIRED)
 
