@@ -67,6 +67,7 @@ message(STATUS "Torch CUDA Definitions: ${TORCH_DEFS}")
 add_library(rec_llm_kernels_lib SHARED
     csrc/flash_att.cu
     csrc/paged_cache.cu
+    csrc/backend/rms_norm_kernel.cu
     csrc/binding.cpp)
 
 target_compile_options(rec_llm_kernels_lib PRIVATE
