@@ -76,12 +76,6 @@ target_compile_definitions(rec_llm_kernels_lib PRIVATE
     _GLIBCXX_USE_CXX11_ABI=${TORCH_ABI_VERSION}
 )
 
-if(NOT TORCH_ABI_VERSION STREQUAL "")
-    target_compile_definitions(rec_llm_kernels_lib PRIVATE 
-        _GLIBCXX_USE_CXX11_ABI=${TORCH_ABI_VERSION}
-    )
-endif()
-
 set_target_properties(rec_llm_kernels_lib PROPERTIES PREFIX "" OUTPUT_NAME "_C")
 target_include_directories(rec_llm_kernels_lib PRIVATE 
     ${Torch_INCLUDE_DIRS}
