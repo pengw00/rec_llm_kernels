@@ -115,3 +115,25 @@ target_include_directories(rec_llm_kernels_lib PRIVATE
     $<$<BOOL:${FLASHINFER_INCLUDE_DIR}>:${FLASHINFER_INCLUDE_DIR}>
 )
 target_link_libraries(rec_llm_kernels_lib ${TORCH_LIBRARIES})
+
+# Some PyTorch builds require explicitly linking torch_python for pybind11 <-> at::Tensor casters.
+if(TARGET torch_python)
+    target_link_libraries(rec_llm_kernels_lib torch_python)
+else()
+    if(DEFINED TORCH_INSTALL_PREFIX)
+        find_library(
+            TORCH_PYTHON_LIBRARY
+            NAMES torch_python
+            PATHS "${TORCH_INSTALL_PREFIX}/lib" "${TORCH_INSTALL_PREFIX}/lib64"
+            NO_DEFAULT_PATH
+        )
+        if(TORCH_PYTHON_LIBRARY)
+            message(STATUS "Linking torch_python: ${TORCH_PYTHON_LIBRARY}")
+            target_link_libraries(rec_llm_kernels_lib "${TORCH_PYTHON_LIBRARY}")
+        else()
+            message(STATUS "torch_python not found; continuing without explicit torch_python link.")
+        endif()
+    else()
+        message(STATUS "TORCH_INSTALL_PREFIX not set; cannot search for torch_python explicitly.")
+    endif()
+endif()

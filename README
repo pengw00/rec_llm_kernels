@@ -60,6 +60,21 @@ pip install pytest
 pytest -q
 ```
 
+### Colab rebuild (if extension import fails)
+If you hit an error like `undefined symbol ... type_caster<at::Tensor>::load(...)` when importing `rec_llm_kernels._C`,
+do a clean rebuild:
+
+```bash
+cd /content/rec_llm_kernels
+rm -rf build
+rm -rf *.egg-info
+rm -rf **/__pycache__
+
+pip uninstall -y rec-llm-kernels rec_llm_kernels || true
+MAX_JOBS=2 pip install -e . -v
+pytest -q
+```
+
 ### Colab quickstart
 In Colab, set Runtime → Change runtime type → GPU, then run:
 ```bash
