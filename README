@@ -60,6 +60,11 @@ pip install pytest
 pytest -q
 ```
 
+### Troubleshooting
+- `CUDA error: invalid configuration argument` in `reshape_and_cache`: older kernel launch used a 2D thread block
+  (`head_dim` x `num_heads`) which can exceed 1024 threads/block (e.g. `32 * 128 = 4096`). Rebuild after pulling
+  the fix and the kernel will launch as one block per `(token, head)`.
+
 ### Colab rebuild (if extension import fails)
 If you hit an error like `undefined symbol ... type_caster<at::Tensor>::load(...)` when importing `rec_llm_kernels._C`,
 do a clean rebuild:

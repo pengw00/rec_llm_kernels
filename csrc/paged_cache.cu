@@ -2,6 +2,7 @@
 #include <cuda_runtime.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
+#include <algorithm>
 
 // 向量化访存：一次读取 16 bytes (对应 8 个 bfloat16 或 4 个 float)
 // 这能极大提升 A100 显存带宽利用率
@@ -14,27 +15,26 @@ __global__ void reshape_and_cache_kernel(
     const int32_t* __restrict__ slot_mapping, // [num_tokens]
     const int num_heads,
     const int head_dim,
-    const int block_size,
-    const int key_stride,                  // k[i+1] - k[i] 的距离
-    const int value_stride                 // v[i+1] - v[i] 的距离
+    const int block_size
 ) {
     // blockIdx.x 对应第几个 token
-    // threadIdx.y 对应第几个 head
+    // blockIdx.y 对应第几个 head
     // threadIdx.x 对应 head 中的维度偏移
     const int token_idx = blockIdx.x;
-    const int head_idx = threadIdx.y;
-    const int dim_idx = threadIdx.x;
+    const int head_idx = blockIdx.y;
 
-    if (head_idx < num_heads && dim_idx < head_dim) {
-        const int slot_idx = slot_mapping[token_idx];
-        if (slot_idx < 0) return; // 负值代表忽略该 token
+    if (head_idx >= num_heads) return;
 
-        const int block_idx = slot_idx / block_size;
-        const int block_offset = slot_idx % block_size;
+    const int slot_idx = slot_mapping[token_idx];
+    if (slot_idx < 0) return; // 负值代表忽略该 token
 
+    const int block_idx = slot_idx / block_size;
+    const int block_offset = slot_idx % block_size;
+
+    for (int dim_idx = threadIdx.x; dim_idx < head_dim; dim_idx += blockDim.x) {
         // 计算物理 Cache 的偏移量
         // [num_blocks, num_heads, block_size, head_dim]
-        const int64_t cache_idx = 
+        const int64_t cache_idx =
             (int64_t)block_idx * num_heads * block_size * head_dim +
             (int64_t)head_idx * block_size * head_dim +
             (int64_t)block_offset * head_dim +
@@ -42,7 +42,7 @@ __global__ void reshape_and_cache_kernel(
 
         // 计算当前输入 K/V 的偏移量
         // [num_tokens, num_heads, head_dim]
-        const int64_t input_idx = 
+        const int64_t input_idx =
             (int64_t)token_idx * num_heads * head_dim +
             (int64_t)head_idx * head_dim +
             dim_idx;
@@ -65,9 +65,11 @@ void reshape_and_cache(
     int head_dim = key.size(2);
     int block_size = key_cache.size(2);
 
-    dim3 grid(num_tokens);
-    dim3 block(std::min(head_dim, 1024), num_heads); 
-    // 注意：如果 num_heads * head_dim 超过 1024，需要调整线程块维度
+    // One block per (token, head). This avoids exceeding the 1024 threads/block limit
+    // when num_heads * head_dim is large (e.g., 32 * 128 = 4096).
+    dim3 grid(num_tokens, num_heads);
+    int threads = std::min(head_dim, 256);
+    dim3 block(threads);
 
     const at::cuda::OptionalCUDAGuard device_guard(device_of(key));
     auto stream = at::cuda::getCurrentCUDAStream();
@@ -82,9 +84,7 @@ void reshape_and_cache(
                 slot_mapping.data_ptr<int32_t>(),
                 num_heads,
                 head_dim,
-                block_size,
-                key.stride(0),
-                value.stride(0)
+                block_size
             );
         }));
 }
