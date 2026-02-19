@@ -3,6 +3,9 @@ import pytest
 import rec_llm_kernels._C as _C  # 调用你编译的 C++ 扩展
 
 def test_reshape_and_cache():
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA is required for reshape_and_cache test.")
+
     # --- 1. 配置参数 (以 Llama 架构为例) ---
     num_tokens = 4
     num_heads = 32
@@ -30,7 +33,7 @@ def test_reshape_and_cache():
 
     # --- 5. 执行你的 CUDA Kernel ---
     print(f"\n正在启动 Kernel 测试: 写入 {num_tokens} 个 tokens 到 Block 5...")
-    _C.reshape_and_cache(k, v, k_cache, v_cache, slot_mapping)
+    _C.ops.reshape_and_cache(k, v, k_cache, v_cache, slot_mapping)
     torch.cuda.synchronize() # 确保 GPU 计算完成
 
     # --- 6. 验证结果 ---

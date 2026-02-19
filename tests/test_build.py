@@ -1,12 +1,19 @@
-import torch
-import rec_llm_kernels._C as ops
+import pytest
 
-# Create some test data on GPU
-q = torch.ones(10, 10).cuda()
-out = torch.empty_like(q)
 
-# Call YOUR custom kernel
-ops.flash_att_forward(q, q, q, out)
+torch = pytest.importorskip("torch")
 
-print("Kernel Output Check (should be 2.0 if using q+k logic):", out[0][0].item())
-print("Success! Your T4 custom kernel is alive.")
+
+def _require_cuda() -> None:
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA is required for these kernel tests.")
+
+
+def test_extension_import_and_symbols():
+    _require_cuda()
+    _C = pytest.importorskip("rec_llm_kernels._C")
+
+    assert hasattr(_C, "ops"), "Expected rec_llm_kernels._C.ops submodule"
+    for name in ("flash_att_forward", "reshape_and_cache", "rms_norm"):
+        assert hasattr(_C.ops, name), f"Expected rec_llm_kernels._C.ops.{name}"
+

@@ -5,35 +5,68 @@
   - `ops.py`: High-level Python interface for the kernels.
 - `setup.py`: The build script that links C++ to Python.
 
+## Build & Install (CUDA)
+This project contains CUDA (`.cu`) sources and generally needs **Linux + NVIDIA GPU + CUDA toolkit** to build.
 
-# Create and activate venv
+### Create and activate venv
+```bash
 python3 -m venv venv
 source venv/bin/activate
-
-# Install core dependencies
 ```
+
+### Install core dependencies
+```bash
 pip install torch setuptools wheel ninja
 ```
 
-# This will trigger the initial CUDA compilation
-```
+### This will trigger the initial CUDA compilation
+```bash
 pip install -e .
 ```
 
-3. Compiling C++/CUDA Kernels
+### Recompiling C++/CUDA Kernels
 If you modify any files in csrc/ (.cu or .cpp), you must recompile the binary:
-Option A: Fast In-place Build (Recommended for Debugging)
+
+Option A: Fast in-place build (recommended for debugging).  
 This generates the .so binary directly in your project folder for immediate testing.
 
+```bash
 python setup.py build_ext --inplace
-
-# Option B: Clean Build (Recommended for Production)
 ```
-pip install ninja
+
+Option B: Clean build (recommended for production).
+```bash
 MAX_JOBS=4 pip install -e .
 ```
 
-```
-USE_FLASHINFER=1 pip install -e .
+### FlashInfer (optional)
+By default, CMake will **not** fetch FlashInfer over the network. Choose one:
+
+- Use a local checkout:
+```bash
+USE_FLASHINFER=1 pip install -e . --config-settings=cmake.args="-DFLASHINFER_SOURCE_DIR=/path/to/flashinfer"
 ```
 
+- Allow CMake to fetch it (requires network access):
+```bash
+USE_FLASHINFER=1 pip install -e . --config-settings=cmake.args="-DFLASHINFER_FETCH=ON"
+```
+
+## Testing (pytest)
+Kernel tests require CUDA. On non-CUDA machines, tests will be skipped.
+
+```bash
+pip install pytest
+pytest -q
+```
+
+### Colab quickstart
+In Colab, set Runtime → Change runtime type → GPU, then run:
+```bash
+git clone <YOUR_REPO_URL> rec_llm_kernels
+cd rec_llm_kernels
+pip -q install --upgrade pip
+pip -q install torch pytest ninja setuptools wheel
+pip -q install -e .
+pytest -q
+```

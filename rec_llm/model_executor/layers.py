@@ -1,6 +1,13 @@
 import torch
 from torch import nn
-from rec_llm import _C  # 导入你的 C 扩展
+
+try:
+    import rec_llm_kernels._C as _C  # type: ignore
+except Exception as e:  # pragma: no cover
+    raise ImportError(
+        "Failed to import the compiled extension `rec_llm_kernels._C`. "
+        "Build/install the project first (e.g. `pip install -e .`)."
+    ) from e
 
 class RMSNorm(nn.Module):
     def __init__(self, hidden_size, eps=1e-6):
@@ -16,30 +23,36 @@ class RMSNorm(nn.Module):
         # 1. 确保输入是连续的，CUDA Kernel 极其依赖连续内存
         if not x.is_contiguous():
             x = x.contiguous()
-            
-        # 2. 调用你的 C++ 算子
-        # 传入 x (输入/输出), self.weight (权重), self.variance_epsilon (超参)
-        _C.ops.rms_norm(x, self.weight, self.variance_epsilon)
-        
-        return x
 
-class Attention(nn.Module):
-    def __init__(self, config):
+        weight = self.weight
+        if weight.device != x.device:
+            weight = weight.to(device=x.device)
+        if weight.dtype != x.dtype:
+            weight = weight.to(dtype=x.dtype)
+
+        out = torch.empty_like(x)
+        _C.ops.rms_norm(out, x, weight, float(self.variance_epsilon))
+        return out
+
+class PagedAttention(nn.Module):
+    def __init__(self, config=None):
         super().__init__()
         self.config = config
-        # 其它初始化...
 
-    def forward(self, q, k, v, kv_cache, slot_mapping):
+    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """
-        模拟 vLLM 的 PagedAttention 调用
+        Minimal wrapper for the current placeholder FlashAttention kernel.
+        Ignores paged-KV-cache arguments for now.
         """
-        # 调用 C++ 算子
-        _C.ops.paged_attention(
-            q, k, v, 
-            kv_cache, 
-            slot_mapping,
-            self.config.num_heads,
-            self.config.head_size,
-            self.config.scale
-        )
-        return q
+        if not (q.is_cuda and k.is_cuda and v.is_cuda):
+            raise ValueError("PagedAttention expects CUDA tensors.")
+        if q.dtype != torch.float32:
+            raise ValueError("Current flash_att_forward placeholder expects float32 tensors.")
+
+        out = torch.empty_like(q)
+        _C.ops.flash_att_forward(q, k, v, out)
+        return out
+
+
+# Back-compat alias (older code used Attention)
+Attention = PagedAttention
