@@ -13,7 +13,10 @@ void reshape_and_cache(
 void launch_rms_norm(torch::Tensor& out, torch::Tensor& input, torch::Tensor& weight, float epsilon);
 
 // 绑定模块
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+// NOTE: The filename is `_C.so` and Python imports `rec_llm_kernels._C`,
+// so the init symbol must be `PyInit__C`. Use a fixed module name to avoid
+// mismatches when building via plain CMake.
+PYBIND11_MODULE(_C, m) {
     // 创建 ops 子模块，模仿 vllm._C.ops
     auto ops = m.def_submodule("ops", "rec_llm kernels");
 
