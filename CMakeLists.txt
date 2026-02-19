@@ -105,7 +105,7 @@ add_library(rec_llm_kernels_lib SHARED
     csrc/binding.cpp)
 
 target_compile_options(rec_llm_kernels_lib PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:-arch=sm_80 --use_fast_math>
+    $<$<COMPILE_LANGUAGE:CUDA>:--use_fast_math>
 )
 
 set_target_properties(rec_llm_kernels_lib PROPERTIES PREFIX "" OUTPUT_NAME "_C")

@@ -6,6 +6,37 @@ import torch  # <--- 必须添加，用于获取 Torch 的路径
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext 
 
+def _detect_cmake_cuda_architectures() -> str:
+    # Allow user override first (useful for Colab T4 vs A100).
+    for env_key in ("CMAKE_CUDA_ARCHITECTURES", "CUDA_ARCHITECTURES", "CUDA_ARCH"):
+        value = os.environ.get(env_key)
+        if value:
+            return value
+
+    # Best-effort auto-detect from the active GPU, if available.
+    try:
+        if torch.cuda.is_available():
+            major, minor = torch.cuda.get_device_capability()
+            return f"{major}{minor}"
+    except Exception:
+        pass
+
+    # Reasonable default (A100 / sm80).
+    return "80"
+
+
+def _detect_build_parallelism() -> int:
+    value = os.environ.get("MAX_JOBS") or os.environ.get("CMAKE_BUILD_PARALLEL_LEVEL")
+    if value:
+        try:
+            jobs = int(value)
+            if jobs > 0:
+                return jobs
+        except ValueError:
+            pass
+    return max(1, (os.cpu_count() or 8))
+
+
 class CMakeBuild(build_ext):
     def run(self):
         # 1. 获取项目根目录的绝对路径
@@ -29,12 +60,15 @@ class CMakeBuild(build_ext):
 
         use_flashinfer = "ON" if os.environ.get("USE_FLASHINFER") == "1" else "OFF"
         print(f"--- FlashInfer Option: {use_flashinfer} ---")
+
+        cuda_arch = _detect_cmake_cuda_architectures()
+        print(f"--- CMake CUDA Architectures: {cuda_arch} ---")
         
         # 运行 CMake 配置
         cmake_args = [
             "cmake", project_root, 
             f"-DUSE_FLASHINFER={use_flashinfer}",
-            "-DCMAKE_CUDA_ARCHITECTURES=80",
+            f"-DCMAKE_CUDA_ARCHITECTURES={cuda_arch}",
             f"-DCMAKE_PREFIX_PATH={torch_cmake_path}",  # <--- 关键修复：强制注入 Torch 路径
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={output_dir}",
             f"-DPYTHON_EXECUTABLE={sys.executable}" 
@@ -44,7 +78,8 @@ class CMakeBuild(build_ext):
         subprocess.check_call(cmake_args, cwd=build_temp)
         
         # 运行编译，建议加上并行编译选项加快速度
-        subprocess.check_call(["cmake", "--build", ".", "--", "-j8"], cwd=build_temp)
+        jobs = _detect_build_parallelism()
+        subprocess.check_call(["cmake", "--build", ".", "--parallel", str(jobs)], cwd=build_temp)
 
 setup(
     name="rec_llm_kernels",

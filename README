@@ -70,3 +70,10 @@ pip -q install torch pytest ninja setuptools wheel
 pip -q install -e .
 pytest -q
 ```
+
+### Tiny Llama smoke test (Transformers)
+Quick sanity check that a tiny Llama model can run on GPU and returns `past_key_values`:
+```bash
+pip -q install transformers accelerate sentencepiece
+python scripts/colab_tiny_llama_smoke.py
+```
