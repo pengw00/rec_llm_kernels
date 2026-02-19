@@ -60,6 +60,16 @@ pip install pytest
 pytest -q
 ```
 
+To show skip reasons in the output:
+```bash
+pytest -q -rs
+```
+
+To show a short test summary including skipped/failed/xfailed reasons:
+```bash
+pytest -ra
+```
+
 ### Troubleshooting
 - `CUDA error: invalid configuration argument` in `reshape_and_cache`: older kernel launch used a 2D thread block
   (`head_dim` x `num_heads`) which can exceed 1024 threads/block (e.g. `32 * 128 = 4096`). Rebuild after pulling

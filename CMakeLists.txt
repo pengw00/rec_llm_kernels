@@ -100,6 +100,7 @@ endif()
 # 编译你的算子库
 add_library(rec_llm_kernels_lib SHARED
     csrc/flash_att.cu
+    csrc/paged_attention_decode.cu
     csrc/paged_cache.cu
     csrc/backend/rms_norm_kernel.cu
     csrc/binding.cpp)
