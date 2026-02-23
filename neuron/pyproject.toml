@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rec-llm-kernels-neuron"
+version = "0.0.1"
+description = "Neuron (Inferentia2) backend for rec_llm_kernels (no CUDA build)."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "torch",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+# Build this as a standalone package without pulling in the CUDA extension package.
+where = [".."]
+include = ["rec_llm_kernels_neuron*"]
+
