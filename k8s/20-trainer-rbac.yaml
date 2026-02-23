@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fake-trainer
+  namespace: model-sim
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fake-trainer
+  namespace: model-sim
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fake-trainer
+  namespace: model-sim
+subjects:
+  - kind: ServiceAccount
+    name: fake-trainer
+    namespace: model-sim
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fake-trainer

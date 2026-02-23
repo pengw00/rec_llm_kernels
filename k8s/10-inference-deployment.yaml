@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-server
+  namespace: model-sim
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: inference-server
+  template:
+    metadata:
+      labels:
+        app: inference-server
+    spec:
+      containers:
+        - name: inference
+          image: inference-server:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MODEL_DIR
+              value: /models
+            - name: MODEL_VERSION_PATH
+              value: /models/version.txt
+            - name: MODEL_POLL_INTERVAL_S
+              value: "0.5"
+          volumeMounts:
+            - name: model-weights
+              mountPath: /models
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 1
+            periodSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: model-weights
+          configMap:
+            name: model-weights
+

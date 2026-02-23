@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-weights
+  namespace: model-sim
+data:
+  version.txt: "v1\n"
+

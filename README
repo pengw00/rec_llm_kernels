@@ -107,3 +107,16 @@ Quick sanity check that a tiny Llama model can run on GPU and returns `past_key_
 pip -q install transformers accelerate sentencepiece
 python scripts/colab_tiny_llama_smoke.py
 ```
+
+## Kubernetes (model serving + training simulation)
+This repo also includes a minimal Kubernetes-based model serving + training simulation system:
+
+- **Inference Server Cluster**: 2 replicas behind a Service (load balanced)
+  - Prompt processing: `POST /generate`
+  - Model version tracking: response header `X-Model-Version`
+  - Zero-downtime model updates: hot reload in-place (no pod restart) via mounted `ConfigMap` + `POST /reload`
+- **Fake Trainer Server**:
+  - Sends prompt requests to the inference Service
+  - Emits model "weight" updates by patching the `ConfigMap` and triggering reload on all inference pods
+
+See `/k8s/README.md` for minikube instructions and a quick demo.

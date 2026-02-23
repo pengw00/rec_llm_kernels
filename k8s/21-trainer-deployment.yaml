@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fake-trainer
+  namespace: model-sim
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fake-trainer
+  template:
+    metadata:
+      labels:
+        app: fake-trainer
+    spec:
+      serviceAccountName: fake-trainer
+      containers:
+        - name: trainer
+          image: fake-trainer:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: INFERENCE_URL
+              value: http://inference-server:8000
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MODEL_CONFIGMAP_NAME
+              value: model-weights
+            - name: MODEL_VERSION_KEY
+              value: version.txt
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 1
+            periodSeconds: 3
+

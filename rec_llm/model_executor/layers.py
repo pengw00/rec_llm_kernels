@@ -9,6 +9,12 @@ except Exception as e:  # pragma: no cover
         "Build/install the project first (e.g. `pip install -e .`)."
     ) from e
 
+
+def _require_cuda(t: torch.Tensor) -> None:
+    if not t.is_cuda:
+        raise ValueError("This module expects CUDA tensors.")
+
+
 class RMSNorm(nn.Module):
     def __init__(self, hidden_size, eps=1e-6):
         super().__init__()
@@ -34,25 +40,40 @@ class RMSNorm(nn.Module):
         _C.ops.rms_norm(out, x, weight, float(self.variance_epsilon))
         return out
 
+
 class PagedAttention(nn.Module):
-    def __init__(self, config=None):
+    def __init__(self, num_heads: int, head_dim: int, scale: float | None = None):
         super().__init__()
-        self.config = config
+        self.num_heads = int(num_heads)
+        self.head_dim = int(head_dim)
+        self.scale = float(scale) if scale is not None else 1.0 / (float(self.head_dim) ** 0.5)
 
-    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+    def forward(
+        self,
+        query: torch.Tensor,         # [B, H, D]
+        key_cache: torch.Tensor,     # [NB, H, BS, D]
+        value_cache: torch.Tensor,   # [NB, H, BS, D]
+        block_tables: torch.Tensor,  # [B, max_blocks]
+        context_lens: torch.Tensor,  # [B]
+        *,
+        scale: float | None = None,
+    ) -> torch.Tensor:
         """
-        Minimal wrapper for the current placeholder FlashAttention kernel.
-        Ignores paged-KV-cache arguments for now.
+        Decode-only paged attention wrapper (MVP).
         """
-        if not (q.is_cuda and k.is_cuda and v.is_cuda):
-            raise ValueError("PagedAttention expects CUDA tensors.")
-        if q.dtype != torch.float32:
-            raise ValueError("Current flash_att_forward placeholder expects float32 tensors.")
+        _require_cuda(query)
+        _require_cuda(key_cache)
+        _require_cuda(value_cache)
+        _require_cuda(block_tables)
+        _require_cuda(context_lens)
 
-        out = torch.empty_like(q)
-        _C.ops.flash_att_forward(q, k, v, out)
-        return out
+        if query.dim() != 3:
+            raise ValueError("query must have shape [B, H, D].")
+        if query.size(1) != self.num_heads or query.size(2) != self.head_dim:
+            raise ValueError("query shape mismatch with num_heads/head_dim.")
 
+        s = self.scale if scale is None else float(scale)
+        return _C.ops.paged_attention_decode(query, key_cache, value_cache, block_tables, context_lens, s)
 
 # Back-compat alias (older code used Attention)
 Attention = PagedAttention
