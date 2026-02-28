@@ -5,13 +5,18 @@ import pytest
 
 torch = pytest.importorskip("torch")
 pytest.importorskip("torch_xla")
-import torch_xla.core.xla_model as xm  # type: ignore
+import torch_xla  # type: ignore
 
 from rec_llm_kernels_neuron import ops
 
 
 @pytest.fixture(scope="session")
 def device():
+    # Newer torch-xla recommends `torch_xla.device()` over `xm.xla_device()`.
+    if hasattr(torch_xla, "device"):
+        return torch_xla.device()
+    import torch_xla.core.xla_model as xm  # type: ignore
+
     return xm.xla_device()
 
 

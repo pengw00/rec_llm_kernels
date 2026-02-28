@@ -5,13 +5,17 @@ import pytest
 
 torch = pytest.importorskip("torch")
 pytest.importorskip("torch_xla")
-import torch_xla.core.xla_model as xm  # type: ignore
+import torch_xla  # type: ignore
 
 from rec_llm_kernels_neuron import ops
 
 
 @pytest.fixture(scope="session")
 def device():
+    if hasattr(torch_xla, "device"):
+        return torch_xla.device()
+    import torch_xla.core.xla_model as xm  # type: ignore
+
     return xm.xla_device()
 
 
@@ -43,4 +47,3 @@ def test_flash_att_forward_matches_reference(device, causal):
     ops.flash_att_forward(q, k, v, out, scale=scale, causal=causal)
     ref = _ref_attention(q, k, v, scale=scale, causal=causal)
     torch.testing.assert_close(out, ref, rtol=1e-3, atol=1e-3)
-

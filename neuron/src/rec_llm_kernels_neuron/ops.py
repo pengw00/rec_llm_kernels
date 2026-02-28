@@ -8,9 +8,15 @@ import torch
 
 def _sync_if_xla() -> None:
     try:
-        import torch_xla.core.xla_model as xm  # type: ignore
+        import torch_xla  # type: ignore
 
-        xm.mark_step()
+        # Newer torch-xla recommends `torch_xla.sync()` over `xm.mark_step()`.
+        if hasattr(torch_xla, "sync"):
+            torch_xla.sync()
+        else:
+            import torch_xla.core.xla_model as xm  # type: ignore
+
+            xm.mark_step()
     except Exception:
         return
 
