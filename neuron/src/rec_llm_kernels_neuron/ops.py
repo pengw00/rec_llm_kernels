@@ -96,7 +96,9 @@ def paged_attention_decode(
     logits = logits.masked_fill(~mask.view(bsz, 1, max_ctx), float("-inf"))
 
     probs = torch.softmax(logits, dim=-1)
-    out = torch.matmul(probs, Vf).to(dtype=query.dtype)
+    # Weighted sum over the context length dimension.
+    # probs: [B, H, T], V: [B, H, T, D] -> out: [B, H, D]
+    out = torch.matmul(probs.unsqueeze(-2), Vf).squeeze(-2).to(dtype=query.dtype)
     _sync_if_xla()
     return out
 
