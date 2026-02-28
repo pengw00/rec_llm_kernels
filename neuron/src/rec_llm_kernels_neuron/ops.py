@@ -38,16 +38,20 @@ def reshape_and_cache(
         return
 
     slots = slots[valid]
-    k_flat = key_cache.reshape(nb * bs, h, d)
-    v_flat = value_cache.reshape(nb * bs, h, d)
+    # Layout note:
+    # key_cache/value_cache are [NB, H, BS, D]. The logical "slot index" is
+    # (block_id * BS + offset). To make dim0 align with that slot index, we need
+    # to move BS next to NB before flattening.
+    k_flat = key_cache.permute(0, 2, 1, 3).reshape(nb * bs, h, d)
+    v_flat = value_cache.permute(0, 2, 1, 3).reshape(nb * bs, h, d)
 
     # XLA/Neuron is often more reliable with `scatter` than in-place `index_copy_`.
     idx = slots.view(-1, 1, 1).expand(-1, h, d)
     k_flat = k_flat.scatter(0, idx, key[valid])
     v_flat = v_flat.scatter(0, idx, value[valid])
 
-    key_cache.copy_(k_flat.reshape(nb, h, bs, d))
-    value_cache.copy_(v_flat.reshape(nb, h, bs, d))
+    key_cache.copy_(k_flat.reshape(nb, bs, h, d).permute(0, 2, 1, 3))
+    value_cache.copy_(v_flat.reshape(nb, bs, h, d).permute(0, 2, 1, 3))
     _sync_if_xla()
 
 
