@@ -41,8 +41,13 @@ def reshape_and_cache(
     k_flat = key_cache.reshape(nb * bs, h, d)
     v_flat = value_cache.reshape(nb * bs, h, d)
 
-    k_flat.index_copy_(0, slots, key[valid])
-    v_flat.index_copy_(0, slots, value[valid])
+    # XLA/Neuron is often more reliable with `scatter` than in-place `index_copy_`.
+    idx = slots.view(-1, 1, 1).expand(-1, h, d)
+    k_flat = k_flat.scatter(0, idx, key[valid])
+    v_flat = v_flat.scatter(0, idx, value[valid])
+
+    key_cache.copy_(k_flat.reshape(nb, h, bs, d))
+    value_cache.copy_(v_flat.reshape(nb, h, bs, d))
     _sync_if_xla()
 
 
@@ -71,9 +76,10 @@ def paged_attention_decode(
 
     block_ids = block_tables.gather(1, bt_idx.to(block_tables.dtype))  # [B, max_ctx]
 
-    h_ix = torch.arange(nheads, device=query.device).view(1, nheads, 1)
-    block_ids_b = block_ids.view(bsz, 1, max_ctx).expand(-1, nheads, -1)
-    off_b = off.view(bsz, 1, max_ctx).expand(-1, nheads, -1)
+    # XLA advanced indexing requires all index tensors to have the same integer dtype.
+    h_ix = torch.arange(nheads, device=query.device, dtype=torch.int64).view(1, nheads, 1)
+    block_ids_b = block_ids.to(torch.int64).view(bsz, 1, max_ctx).expand(-1, nheads, -1)
+    off_b = off.to(torch.int64).view(bsz, 1, max_ctx).expand(-1, nheads, -1)
 
     K = key_cache[block_ids_b, h_ix, off_b]  # [B, H, max_ctx, D]
     V = value_cache[block_ids_b, h_ix, off_b]

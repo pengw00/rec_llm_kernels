@@ -61,14 +61,15 @@ def test_reshape_and_cache_skips_negative_slots(device):
     key = torch.randn(t, h, d, device=device, dtype=torch.float32)
     val = torch.randn(t, h, d, device=device, dtype=torch.float32)
     k_cache = torch.zeros(nb, h, bs, d, device=device, dtype=torch.float32)
+    v_cache = torch.zeros(nb, h, bs, d, device=device, dtype=torch.float32)
 
     base_slot = 1 * bs
     slot_mapping = torch.tensor([base_slot + 0, -1, base_slot + 2, -1], device=device, dtype=torch.int32)
 
-    ops.reshape_and_cache(key, val, k_cache, k_cache, slot_mapping)  # v_cache not checked here
+    ops.reshape_and_cache(key, val, k_cache, v_cache, slot_mapping)  # v_cache not checked here
 
-    torch.testing.assert_close(k_cache[1, :, 0, :], key[0].transpose(0, 1), rtol=1e-3, atol=1e-3)
-    torch.testing.assert_close(k_cache[1, :, 2, :], key[2].transpose(0, 1), rtol=1e-3, atol=1e-3)
+    torch.testing.assert_close(k_cache[1, :, 0, :], key[0], rtol=1e-3, atol=1e-3)
+    torch.testing.assert_close(k_cache[1, :, 2, :], key[2], rtol=1e-3, atol=1e-3)
     assert torch.all(k_cache[1, :, 1, :] == 0)
     assert torch.all(k_cache[1, :, 3, :] == 0)
 
@@ -112,4 +113,3 @@ def test_paged_attention_decode_matches_reference(device):
             ref[b, h] = probs @ V
 
     torch.testing.assert_close(out, ref, rtol=1e-3, atol=1e-3)
-

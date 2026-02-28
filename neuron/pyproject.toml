@@ -20,6 +20,9 @@ classifiers = [
 # - Pinning `torch` from PyPI can accidentally install a CPU/CUDA build and break Neuron envs.
 dependencies = []
 
+[project.scripts]
+rec-llm-kernels-neuron-test = "rec_llm_kernels_neuron.cli:run_tests"
+
 [tool.setuptools]
 include-package-data = true
 

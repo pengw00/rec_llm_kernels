@@ -26,5 +26,10 @@ On an Inf2 instance, you can install just this subpackage directly from GitHub (
 ```bash
 pip install "git+https://github.com/<YOUR_GITHUB>/<YOUR_REPO>.git@<TAG_OR_COMMIT>#subdirectory=neuron"
 pip install -U pytest
-pytest -q "$(python -c 'import rec_llm_kernels_neuron.testing as t; print(t.tests_path())')"
+rec-llm-kernels-neuron-test -q
+```
+
+Alternative (pure pytest):
+```bash
+pytest -q --pyargs rec_llm_kernels_neuron.tests
 ```
