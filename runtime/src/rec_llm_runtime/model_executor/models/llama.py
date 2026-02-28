@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
-from rec_llm.model_executor.layers import PagedAttention, RMSNorm
+from rec_llm_runtime.model_executor.layers import PagedAttention, RMSNorm
 
 
 @dataclass(frozen=True)
@@ -48,4 +48,3 @@ class LlamaLayer(nn.Module):
         )
         attn_out = attn_out.view_as(hidden_states)
         return residual + attn_out
-

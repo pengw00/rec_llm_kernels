@@ -11,7 +11,7 @@ From the repo root:
 pip install -e neuron
 ```
 
-If you need to publish this package to PyPI, see `RELEASING.md`.
+If you need to publish this package to PyPI, see `RELEASING.md`. For Inf2 notes, see `/docs/INF2.md`.
 
 ## Run unit tests (Inf2)
 

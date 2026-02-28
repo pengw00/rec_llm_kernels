@@ -1,9 +1,10 @@
 ## 📂 Project Structure
-- `csrc/`: Raw C++/CUDA source code (The "Muscle").
-- `rec_llm_kernels/`: Python package wrapper (The "Brain").
-  - `_C.so`: (Generated after build) The compiled binary.
-  - `ops.py`: High-level Python interface for the kernels.
-- `setup.py`: The build script that links C++ to Python.
+- `cuda/`: CUDA extension build + Python wrapper (`rec_llm_kernels`).
+  - `cuda/csrc/`: C++/CUDA source code.
+  - `cuda/python/rec_llm_kernels/`: Python package wrapper (imports `_C.so` after build).
+- `runtime/`: Minimal inference runtime scaffolding (`rec_llm_runtime`).
+- `neuron/`: Neuron/Inf2 backend package (`rec_llm_kernels_neuron`).
+- `docs/`: Roadmap and Inf2 notes.
 
 ## Build & Install (CUDA)
 This project contains CUDA (`.cu`) sources and generally needs **Linux + NVIDIA GPU + CUDA toolkit** to build.
@@ -21,22 +22,22 @@ pip install torch setuptools wheel ninja
 
 ### This will trigger the initial CUDA compilation
 ```bash
-pip install -e .
+pip install -e cuda
 ```
 
 ### Recompiling C++/CUDA Kernels
-If you modify any files in csrc/ (.cu or .cpp), you must recompile the binary:
+If you modify any files in `cuda/csrc/` (`.cu` or `.cpp`), you must recompile the binary:
 
 Option A: Fast in-place build (recommended for debugging).  
 This generates the .so binary directly in your project folder for immediate testing.
 
 ```bash
-python setup.py build_ext --inplace
+python cuda/setup.py build_ext --inplace
 ```
 
 Option B: Clean build (recommended for production).
 ```bash
-MAX_JOBS=4 pip install -e .
+MAX_JOBS=4 pip install -e cuda
 ```
 
 ### FlashInfer (optional)
@@ -44,12 +45,12 @@ By default, CMake will **not** fetch FlashInfer over the network. Choose one:
 
 - Use a local checkout:
 ```bash
-USE_FLASHINFER=1 pip install -e . --config-settings=cmake.args="-DFLASHINFER_SOURCE_DIR=/path/to/flashinfer"
+USE_FLASHINFER=1 pip install -e cuda --config-settings=cmake.args="-DFLASHINFER_SOURCE_DIR=/path/to/flashinfer"
 ```
 
 - Allow CMake to fetch it (requires network access):
 ```bash
-USE_FLASHINFER=1 pip install -e . --config-settings=cmake.args="-DFLASHINFER_FETCH=ON"
+USE_FLASHINFER=1 pip install -e cuda --config-settings=cmake.args="-DFLASHINFER_FETCH=ON"
 ```
 
 ## Testing (pytest)
@@ -57,17 +58,17 @@ Kernel tests require CUDA. On non-CUDA machines, tests will be skipped.
 
 ```bash
 pip install pytest
-pytest -q
+pytest -q tests_cuda
 ```
 
 To show skip reasons in the output:
 ```bash
-pytest -q -rs
+pytest -q -rs tests_cuda
 ```
 
 To show a short test summary including skipped/failed/xfailed reasons:
 ```bash
-pytest -ra
+pytest -ra tests_cuda
 ```
 
 ### Troubleshooting
@@ -86,8 +87,8 @@ rm -rf *.egg-info
 rm -rf **/__pycache__
 
 pip uninstall -y rec-llm-kernels rec_llm_kernels || true
-MAX_JOBS=2 pip install -e . -v
-pytest -q
+MAX_JOBS=2 pip install -e cuda -v
+pytest -q tests_cuda
 ```
 
 ### Colab quickstart
@@ -97,8 +98,8 @@ git clone <YOUR_REPO_URL> rec_llm_kernels
 cd rec_llm_kernels
 pip -q install --upgrade pip
 pip -q install torch pytest ninja setuptools wheel
-pip -q install -e .
-pytest -q
+pip -q install -e cuda
+pytest -q tests_cuda
 ```
 
 ### Tiny Llama smoke test (Transformers)
@@ -120,3 +121,6 @@ This repo also includes a minimal Kubernetes-based model serving + training simu
   - Emits model "weight" updates by patching the `ConfigMap` and triggering reload on all inference pods
 
 See `/k8s/README.md` for minikube instructions and a quick demo.
+
+## AWS Inf2 (Neuron)
+See `/docs/INF2.md` for running the Neuron backend tests on Inf2.

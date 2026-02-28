@@ -45,7 +45,7 @@ class CMakeBuild(build_ext):
         build_temp = os.path.abspath(self.build_temp)
         # 3. 获取最终二进制输出目录的绝对路径
         # 注意：这里建议直接指向包内部目录
-        output_dir = os.path.abspath("rec_llm_kernels")
+        output_dir = os.path.abspath(os.path.join(project_root, "python", "rec_llm_kernels"))
 
         if not os.path.exists(build_temp):
             os.makedirs(build_temp)
@@ -86,5 +86,6 @@ setup(
     # 这里的名字要和 CMakeLists.txt 里的 _C 对应
     ext_modules=[Extension("rec_llm_kernels._C", sources=[])],
     cmdclass={"build_ext": CMakeBuild},
-    packages=['rec_llm_kernels']
+    package_dir={"": "python"},
+    packages=["rec_llm_kernels"],
 )

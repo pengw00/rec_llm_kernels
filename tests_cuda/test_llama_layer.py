@@ -53,7 +53,7 @@ def _ref_paged_attention_decode(
 def test_llama_layer_wiring_decode_only_matches_reference():
     _require_cuda()
 
-    from rec_llm.model_executor.models.llama import LlamaLayer, LlamaLayerConfig
+    from rec_llm_runtime.model_executor.models.llama import LlamaLayer, LlamaLayerConfig
 
     torch.manual_seed(0)
     device = "cuda"

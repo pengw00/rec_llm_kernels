@@ -1,6 +1,6 @@
 # Rec LLM Kernels — Roadmap
 
-本仓库目标：构建一套“类似 vLLM 的推理 runtime（`rec_llm/`）”，底层使用自研/可替换的 CUDA kernels（`csrc/` + `rec_llm_kernels._C.ops`），重点聚焦 **Paged KV Cache +（Prefill/Decode）Attention + RMSNorm**，并最终跑通（至少）Llama 类 Transformer 的高吞吐推理。
+本仓库目标：构建一套“类似 vLLM 的推理 runtime（`rec_llm_runtime/`）”，底层使用自研/可替换的 CUDA kernels（`cuda/csrc/` + `rec_llm_kernels._C.ops`），重点聚焦 **Paged KV Cache +（Prefill/Decode）Attention + RMSNorm**，并最终跑通（至少）Llama 类 Transformer 的高吞吐推理。
 
 ---
 
@@ -8,7 +8,7 @@
 
 - C++/CUDA kernels：`reshape_and_cache`、`rms_norm` 已实现；`flash_att_forward` 目前为占位实现（`out=q+k`）。
 - 绑定层：算子导出在 `rec_llm_kernels._C.ops.*`。
-- 上层 runtime：`rec_llm/engine/` 仍是空壳，尚未形成端到端闭环。
+- 上层 runtime：`runtime/src/rec_llm_runtime/engine/` 仍是空壳，尚未形成端到端闭环。
 - 测试：`pytest` 套件已整理为可运行（无 CUDA 时自动 skip）。
 
 ---
@@ -30,8 +30,8 @@
 - attention 先以“占位/最简”方式打通调用链（或接入 FlashInfer decode）
 
 **验收**
-- `tests/test_rms_norm.py`、`tests/test_paged_cache.py` 稳定通过
-- `tests/test_kernels.py` 明确验证当前占位 attention 语义
+- `tests_cuda/test_rms_norm.py`、`tests_cuda/test_paged_cache.py` 稳定通过
+- `tests_cuda/test_kernels.py` 明确验证当前占位 attention 语义
 
 ### Phase 2 — 最小推理 MVP（5–10 天）
 **目标**
@@ -82,20 +82,20 @@
 - `rms_norm(out, x, weight, eps) -> None`
 - `flash_att_forward(q, k, v, out) -> None`（当前占位；后续可替换为真实 attention）
 
-### 2.2 `rec_llm/ops`（Python 稳定 API）
+### 2.2 `runtime/src/rec_llm_runtime/ops`（Python 稳定 API）
 建议在 Python 侧做：
 - dtype/shape 检查
 - contiguous 处理
 - fallback（可选）
 - 文档化（输入输出约束）
 
-### 2.3 `rec_llm/engine`（运行时核心）
+### 2.3 `runtime/src/rec_llm_runtime/engine`（运行时核心）
 建议职责：
 - block 池管理、KV cache 元数据维护
 - batch 组织与调度（后期）
 - 给 `model_executor` 提供“已准备好的 cache view + 元数据”
 
-### 2.4 `rec_llm/model_executor`（模型算子编排）
+### 2.4 `runtime/src/rec_llm_runtime/model_executor`（模型算子编排）
 建议职责：
 - 只关心“如何调用 ops/engine”，不关心分配策略细节
 
@@ -109,8 +109,8 @@ nvidia-smi
 
 # build (verbose) + tests
 export MAX_JOBS=2
-pip install -e . -v
-pytest -q
+pip install -e cuda -v
+pytest -q tests_cuda
 ```
 
 如果是 T4（sm75），可显式：
@@ -125,4 +125,3 @@ export CMAKE_CUDA_ARCHITECTURES=75
 1. Attention 优先路线：FlashInfer 集成 / 自研 kernel？
 2. 目标 GPU：T4（sm75）/ A100（sm80）？
 3. MVP 优先：decode-only / prefill 优先？
-

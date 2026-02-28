@@ -5,8 +5,9 @@ without touching the existing CUDA extension code path.
 
 This repo now includes an **additive** Neuron backend package:
 
-- `rec_llm_kernels_neuron/` (pure PyTorch/XLA reference ops; runs on Neuron via `torch-neuronx`)
-- `tests_inf2/` (unit tests that require `torch_xla` and run on the XLA device)
+- `neuron/src/rec_llm_kernels_neuron/` (pure PyTorch/XLA reference ops; runs on Neuron via `torch-neuronx`)
+- Unit tests are shipped inside the `rec_llm_kernels_neuron` distribution and can be run with
+  `rec-llm-kernels-neuron-test`.
 
 ## On an Inf2 instance
 
