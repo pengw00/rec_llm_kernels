@@ -11,9 +11,20 @@ From the repo root:
 pip install -e neuron
 ```
 
+If you need to publish this package to PyPI, see `RELEASING.md`.
+
 ## Run unit tests (Inf2)
 
 ```bash
 pytest -q tests_inf2
 ```
 
+## Run unit tests on EC2 Inf2 (install from GitHub)
+
+On an Inf2 instance, you can install just this subpackage directly from GitHub (no CUDA/CMake build):
+
+```bash
+pip install "git+https://github.com/<YOUR_GITHUB>/<YOUR_REPO>.git@<TAG_OR_COMMIT>#subdirectory=neuron"
+pip install -U pytest
+pytest -q "$(python -c 'import rec_llm_kernels_neuron.testing as t; print(t.tests_path())')"
+```

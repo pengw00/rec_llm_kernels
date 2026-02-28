@@ -4,8 +4,7 @@ import pytest
 
 
 torch = pytest.importorskip("torch")
-
-torch_xla = pytest.importorskip("torch_xla")
+pytest.importorskip("torch_xla")
 import torch_xla.core.xla_model as xm  # type: ignore
 
 from rec_llm_kernels_neuron import ops
@@ -15,6 +14,7 @@ from rec_llm_kernels_neuron import ops
 def device():
     return xm.xla_device()
 
+
 def _ref_rms_norm(x: "torch.Tensor", weight: "torch.Tensor", eps: float) -> "torch.Tensor":
     x_f = x.to(torch.float32)
     w_f = weight.to(torch.float32)
@@ -23,18 +23,17 @@ def _ref_rms_norm(x: "torch.Tensor", weight: "torch.Tensor", eps: float) -> "tor
     return y.to(dtype=x.dtype)
 
 
-def test_rms_norm_runs_on_inf2(device):
+def test_rms_norm_matches_reference(device):
     rows, hidden = 32, 64
     x = torch.randn(rows, hidden, device=device, dtype=torch.float32)
     w = torch.randn(hidden, device=device, dtype=torch.float32)
     out = torch.empty_like(x)
     ops.rms_norm(out, x, w, 1e-6)
-    assert out.shape == x.shape
     ref = _ref_rms_norm(x, w, 1e-6)
     torch.testing.assert_close(out, ref, rtol=1e-4, atol=1e-4)
 
 
-def test_reshape_and_cache_runs_on_inf2(device):
+def test_reshape_and_cache_matches_reference(device):
     t, h, d = 4, 4, 16
     bs = 8
     nb = 4
@@ -53,6 +52,7 @@ def test_reshape_and_cache_runs_on_inf2(device):
     ref_k = key.transpose(0, 1)
     torch.testing.assert_close(out_k, ref_k, rtol=1e-3, atol=1e-3)
 
+
 def test_reshape_and_cache_skips_negative_slots(device):
     t, h, d = 4, 2, 8
     bs = 8
@@ -61,14 +61,12 @@ def test_reshape_and_cache_skips_negative_slots(device):
     key = torch.randn(t, h, d, device=device, dtype=torch.float32)
     val = torch.randn(t, h, d, device=device, dtype=torch.float32)
     k_cache = torch.zeros(nb, h, bs, d, device=device, dtype=torch.float32)
-    v_cache = torch.zeros(nb, h, bs, d, device=device, dtype=torch.float32)
 
     base_slot = 1 * bs
     slot_mapping = torch.tensor([base_slot + 0, -1, base_slot + 2, -1], device=device, dtype=torch.int32)
 
-    ops.reshape_and_cache(key, val, k_cache, v_cache, slot_mapping)
+    ops.reshape_and_cache(key, val, k_cache, k_cache, slot_mapping)  # v_cache not checked here
 
-    # Only positions 0 and 2 should be written.
     torch.testing.assert_close(k_cache[1, :, 0, :], key[0].transpose(0, 1), rtol=1e-3, atol=1e-3)
     torch.testing.assert_close(k_cache[1, :, 2, :], key[2].transpose(0, 1), rtol=1e-3, atol=1e-3)
     assert torch.all(k_cache[1, :, 1, :] == 0)
@@ -94,7 +92,6 @@ def test_paged_attention_decode_matches_reference(device):
 
     out = ops.paged_attention_decode(query, key_cache, value_cache, block_tables, context_lens, scale)
 
-    # Reference (same math, explicit loop)
     ref = torch.zeros((B, H, D), device=device, dtype=torch.float32)
     for b in range(B):
         ctx = int(context_lens[b].item())
@@ -115,3 +112,4 @@ def test_paged_attention_decode_matches_reference(device):
             ref[b, h] = probs @ V
 
     torch.testing.assert_close(out, ref, rtol=1e-3, atol=1e-3)
+

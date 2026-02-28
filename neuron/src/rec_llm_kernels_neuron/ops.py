@@ -71,9 +71,7 @@ def paged_attention_decode(
 
     block_ids = block_tables.gather(1, bt_idx.to(block_tables.dtype))  # [B, max_ctx]
 
-    b_ix = torch.arange(bsz, device=query.device).view(bsz, 1, 1)
     h_ix = torch.arange(nheads, device=query.device).view(1, nheads, 1)
-
     block_ids_b = block_ids.view(bsz, 1, max_ctx).expand(-1, nheads, -1)
     off_b = off.view(bsz, 1, max_ctx).expand(-1, nheads, -1)
 
@@ -92,3 +90,54 @@ def paged_attention_decode(
     _sync_if_xla()
     return out
 
+
+def flash_att_forward(
+    q: torch.Tensor,  # [B, H, Tq, D] or [B, H, D] (treated as Tq=1)
+    k: torch.Tensor,  # [B, H, Tk, D] or [B, H, D] (treated as Tk=1)
+    v: torch.Tensor,  # [B, H, Tk, D] or [B, H, D] (treated as Tk=1)
+    out: torch.Tensor,  # same shape as q
+    *,
+    scale: Optional[float] = None,
+    causal: bool = False,
+) -> None:
+    """
+    Reference attention implementation intended for Neuron/XLA compilation.
+
+    This is not a hand-written NKI kernel. It is expressed as PyTorch ops so it
+    can be lowered by torch-xla and compiled by Neuron.
+    """
+    if q.dim() == 3:
+        q_ = q.unsqueeze(2)
+        k_ = k.unsqueeze(2)
+        v_ = v.unsqueeze(2)
+        squeeze_t = True
+    else:
+        q_, k_, v_ = q, k, v
+        squeeze_t = False
+
+    bsz, nheads, tq, dim = q_.shape
+    tk = k_.shape[2]
+
+    s = float(scale) if scale is not None else 1.0 / math.sqrt(dim)
+
+    qf = q_.to(torch.float32)
+    kf = k_.to(torch.float32)
+    vf = v_.to(torch.float32)
+
+    # [B, H, Tq, Tk]
+    scores = torch.matmul(qf, kf.transpose(-1, -2)) * s
+    if causal:
+        # Allow attending only to positions <= current query index.
+        i = torch.arange(tq, device=q.device).view(1, 1, tq, 1)
+        j = torch.arange(tk, device=q.device).view(1, 1, 1, tk)
+        scores = scores.masked_fill(j > i, float("-inf"))
+
+    probs = torch.softmax(scores, dim=-1)
+    y = torch.matmul(probs, vf).to(dtype=out.dtype)  # [B, H, Tq, D]
+
+    if squeeze_t:
+        out.copy_(y.squeeze(2))
+    else:
+        out.copy_(y)
+
+    _sync_if_xla()

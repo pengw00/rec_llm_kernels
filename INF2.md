@@ -21,7 +21,8 @@ pip install -e neuron
 
 3) Run tests
 ```bash
-pytest -q tests_inf2
+pip install -U pytest
+pytest -q "$(python -c 'import rec_llm_kernels_neuron.testing as t; print(t.tests_path())')"
 ```
 
 ## Notes

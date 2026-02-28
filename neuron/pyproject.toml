@@ -4,19 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rec-llm-kernels-neuron"
-version = "0.0.1"
+version = "0.1.0"
 description = "Neuron (Inferentia2) backend for rec_llm_kernels (no CUDA build)."
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-  "torch",
+authors = [{ name = "rec_llm_kernels contributors" }]
+keywords = ["aws", "neuron", "inferentia", "inf2", "llm", "inference"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
 ]
+# Intentionally avoid a hard dependency on `torch` here:
+# - On Inf2, users typically install `torch-neuronx`, which provides `torch`.
+# - Pinning `torch` from PyPI can accidentally install a CPU/CUDA build and break Neuron envs.
+dependencies = []
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 # Build this as a standalone package without pulling in the CUDA extension package.
-where = [".."]
+where = ["src"]
 include = ["rec_llm_kernels_neuron*"]
 
+[tool.setuptools.package-dir]
+"" = "src"
