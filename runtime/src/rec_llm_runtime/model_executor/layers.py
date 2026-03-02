@@ -73,7 +73,9 @@ class PagedAttention(nn.Module):
             raise ValueError("query shape mismatch with num_heads/head_dim.")
 
         s = self.scale if scale is None else float(scale)
-        return _C.ops.paged_attention_decode(query, key_cache, value_cache, block_tables, context_lens, s)
+        from rec_llm_runtime.ops.paged_cache import paged_attention_decode_v2
+
+        return paged_attention_decode_v2(query, key_cache, value_cache, block_tables, context_lens, s)
 
 # Back-compat alias (older code used Attention)
 Attention = PagedAttention

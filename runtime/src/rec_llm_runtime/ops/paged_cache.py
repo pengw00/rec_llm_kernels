@@ -35,3 +35,20 @@ def paged_attention_decode(
     """
     return _ops().paged_attention_decode(query, key_cache, value_cache, block_tables, context_lens, float(scale))
 
+
+def paged_attention_decode_v2(
+    query: torch.Tensor,        # [B, H, D]
+    key_cache: torch.Tensor,    # [NB, H, BS, D]
+    value_cache: torch.Tensor,  # [NB, H, BS, D]
+    block_tables: torch.Tensor, # [B, max_blocks] int32 physical block ids
+    context_lens: torch.Tensor, # [B] int32
+    scale: float,
+) -> torch.Tensor:
+    """
+    Decode-only paged attention (v2).
+
+    Uses FlashInfer if available, otherwise falls back to the built-in CUDA kernel.
+    """
+    from rec_llm_kernels.ops import paged_attention_decode_v2 as _v2
+
+    return _v2(query, key_cache, value_cache, block_tables, context_lens, float(scale))

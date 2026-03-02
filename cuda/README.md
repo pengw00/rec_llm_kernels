@@ -8,3 +8,16 @@ Install (CUDA machine):
 pip install -e cuda
 ```
 
+
+2. run cuda test in GPU g5.xlarge
+```
+cd opt/dlami/nvme
+clone rec_llm_kernels
+cd rec_llm_kernels
+python3 -m venv venv
+source venv/bin/activate
+export TMPDIR = opt/dlami/nvme
+mkdir -p $TMPDIR
+pip install --no-cache-dir torch
+pip install --no-cache-dir --no-build-isolation -e cuda
+```
