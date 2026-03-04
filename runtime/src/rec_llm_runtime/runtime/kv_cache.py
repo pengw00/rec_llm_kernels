@@ -8,7 +8,7 @@ import torch
 @dataclass
 class PagedKVCache:
     """
-    Minimal paged KV cache for decode-only MVP.
+    Minimal paged KV cache for decode and prefill MVPs.
 
     Layout matches the CUDA kernel contract:
       key_cache/value_cache: [num_blocks, num_heads, block_size, head_dim]
@@ -103,3 +103,60 @@ class PagedKVCache:
         reshape_and_cache_fn(key, value, self.key_cache, self.value_cache, slot_mapping)
         self.context_lens += 1
 
+    def prefill_kv(
+        self,
+        key: torch.Tensor,   # [T, H, D] packed
+        value: torch.Tensor, # [T, H, D] packed
+        cu_seqlens: torch.Tensor,  # [B+1]
+        *,
+        reshape_and_cache_fn,
+    ) -> None:
+        """
+        Append multiple tokens per sequence (prefill).
+
+        key/value: packed tokens [T, H, D], where tokens for each sequence are
+        concatenated and indexed by cu_seqlens.
+        """
+        if key.shape != value.shape:
+            raise ValueError("key/value shape mismatch.")
+        if key.dim() != 3:
+            raise ValueError("key/value must have shape [T, H, D].")
+        if cu_seqlens.dim() != 1:
+            raise ValueError("cu_seqlens must have shape [B+1].")
+        if int(cu_seqlens.numel()) != self.batch_size + 1:
+            raise ValueError("cu_seqlens must have length B+1.")
+
+        T, h, d = key.shape
+        if h != self.num_heads or d != self.head_dim:
+            raise ValueError("head dims mismatch.")
+        if int(cu_seqlens[0].item()) != 0:
+            raise ValueError("cu_seqlens must start with 0.")
+        if int(cu_seqlens[-1].item()) != int(T):
+            raise ValueError("cu_seqlens[-1] must equal T.")
+
+        if cu_seqlens.dtype not in (torch.int32, torch.int64):
+            cu_seqlens = cu_seqlens.to(dtype=torch.int32)
+
+        slots: list[int] = [0] * int(T)
+        for b in range(self.batch_size):
+            start = int(cu_seqlens[b].item())
+            end = int(cu_seqlens[b + 1].item())
+            if end < start:
+                raise ValueError("cu_seqlens must be non-decreasing.")
+            if end == start:
+                continue
+
+            base_ctx = int(self.context_lens[b].item())
+            for t in range(start, end):
+                ctx = base_ctx + (t - start)
+                logical_block = ctx // self.block_size
+                if logical_block >= int(self.block_tables.size(1)):
+                    raise RuntimeError("Out of block_table capacity (increase max_blocks).")
+                offset = ctx % self.block_size
+                block_id = self._ensure_block(b, logical_block)
+                slots[t] = block_id * self.block_size + offset
+
+            self.context_lens[b] += int(end - start)
+
+        slot_mapping = torch.tensor(slots, device=key.device, dtype=torch.int32)
+        reshape_and_cache_fn(key, value, self.key_cache, self.value_cache, slot_mapping)
