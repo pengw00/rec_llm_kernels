@@ -31,7 +31,7 @@ def _ref_causal_attention(q: "torch.Tensor", k: "torch.Tensor", v: "torch.Tensor
         vt = vf[: t + 1]
         logits = (kt * qt.unsqueeze(0)).sum(dim=-1) * float(sm_scale)  # [t+1, H]
         probs = torch.softmax(logits.transpose(0, 1), dim=-1)  # [H, t+1]
-        out[t] = probs @ vt.transpose(0, 1)  # [H, D]
+        out[t] = torch.einsum("ht,thd->hd", probs, vt)  # [H, D]
     return out.to(dtype=q.dtype)
 
 
