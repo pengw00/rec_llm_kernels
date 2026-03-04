@@ -45,8 +45,9 @@ def test_flashinfer_prefill_attention_matches_reference():
     device = "cuda"
     dtype = torch.float16
 
-    # Two sequences, lengths 5 and 3 => packed T=8
-    seqlens = [5, 3]
+    # FlashInfer has limited support for very small head_dim on some GPUs/builds.
+    # Use a more realistic head_dim (e.g. 64) to exercise the kernel path.
+    seqlens = [8, 5]  # packed T=13
     cu = [0]
     for l in seqlens:
         cu.append(cu[-1] + l)
@@ -54,7 +55,7 @@ def test_flashinfer_prefill_attention_matches_reference():
 
     T = cu[-1]
     H = 4
-    D = 16
+    D = 64
     sm_scale = 1.0 / math.sqrt(D)
 
     q = torch.randn(T, H, D, device=device, dtype=dtype)
@@ -73,4 +74,3 @@ def test_flashinfer_prefill_attention_matches_reference():
     ref = torch.cat(refs, dim=0)
 
     torch.testing.assert_close(out, ref, rtol=1e-2, atol=1e-2)
-

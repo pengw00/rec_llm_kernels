@@ -68,18 +68,28 @@ def flashinfer_prefill_attention(
         qb = q[start:end]
         kb = k[start:end]
         vb = v[start:end]
-        ob = flashinfer.prefill.single_prefill_with_kv_cache(
-            qb,
-            kb,
-            vb,
-            causal=bool(causal),
-            kv_layout=str(kv_layout),
-            pos_encoding_mode="NONE",
-            sm_scale=float(sm_scale),
-            backend=str(backend),
-        )
+        try:
+            ob = flashinfer.prefill.single_prefill_with_kv_cache(
+                qb,
+                kb,
+                vb,
+                causal=bool(causal),
+                kv_layout=str(kv_layout),
+                pos_encoding_mode="NONE",
+                sm_scale=float(sm_scale),
+                backend=str(backend),
+            )
+        except RuntimeError as e:
+            # Some FlashInfer builds have limited support for small head_dim or
+            # specific (H, D, L) combinations. Provide a clear error message.
+            msg = str(e)
+            if "Invalid configuration" in msg:
+                raise RuntimeError(
+                    "FlashInfer prefill kernel reports an invalid configuration for the given shapes. "
+                    "Try a different head_dim (e.g. 64/128), upgrade flashinfer, or switch the backend."
+                ) from e
+            raise
         outs.append(ob)
     if not outs:
         return torch.empty_like(q)
     return torch.cat(outs, dim=0)
-
