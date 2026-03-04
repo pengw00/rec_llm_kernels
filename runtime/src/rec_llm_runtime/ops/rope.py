@@ -39,6 +39,14 @@ def apply_rope(
     positions: [B]
     Returns rotated (q, k) with same dtype/device.
     """
+    if q.is_cuda:
+        try:
+            from rec_llm_kernels.ops import apply_rope as _cuda_apply_rope  # type: ignore
+
+            return _cuda_apply_rope(q, k, positions, base=base)
+        except Exception:
+            pass
+
     if q.shape != k.shape:
         raise ValueError("q and k must have the same shape.")
     if q.dim() != 3:
@@ -62,4 +70,3 @@ def apply_rope(
     k_rot = torch.cat([k1 * cos - k2 * sin, k1 * sin + k2 * cos], dim=-1)
 
     return q_rot.to(dtype=q.dtype), k_rot.to(dtype=k.dtype)
-

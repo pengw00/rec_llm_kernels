@@ -103,6 +103,7 @@ add_library(rec_llm_kernels_lib SHARED
     csrc/paged_attention_decode.cu
     csrc/paged_cache.cu
     csrc/backend/rms_norm_kernel.cu
+    csrc/backend/rope_kernel.cu
     csrc/binding.cpp)
 
 target_compile_options(rec_llm_kernels_lib PRIVATE

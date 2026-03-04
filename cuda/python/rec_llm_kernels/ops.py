@@ -32,6 +32,28 @@ def rms_norm(out: torch.Tensor, x: torch.Tensor, weight: torch.Tensor, eps: floa
     return _ops().rms_norm(out, x, weight, float(eps))
 
 
+def apply_rope(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    positions: torch.Tensor,
+    *,
+    base: float = 10000.0,
+    rotary_dim: int = -1,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Apply Llama-style rotary embedding to q/k.
+
+    Supports q/k shapes:
+      - [B, H, D] with positions [B]
+      - [T, H, D] with positions [T]
+    """
+    if positions.device != q.device:
+        positions = positions.to(device=q.device)
+    if positions.dtype not in (torch.int32, torch.int64):
+        positions = positions.to(dtype=torch.int64)
+    return _ops().apply_rope(q, k, positions, float(base), int(rotary_dim))
+
+
 def flash_att_forward(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, out: torch.Tensor) -> None:
     return _ops().flash_att_forward(q, k, v, out)
 

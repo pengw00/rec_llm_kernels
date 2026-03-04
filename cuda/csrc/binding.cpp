@@ -1,4 +1,5 @@
 #include <torch/extension.h>
+#include <tuple>
 
 // 1. 声明你的 CUDA Kernel 启动函数
 void launch_flash_att(torch::Tensor q, torch::Tensor k, torch::Tensor v, torch::Tensor out);
@@ -20,6 +21,14 @@ torch::Tensor paged_attention_decode(torch::Tensor query,
                                      torch::Tensor context_lens,
                                      double scale);
 
+// 4. RoPE
+std::tuple<torch::Tensor, torch::Tensor> apply_rope(
+    torch::Tensor q,
+    torch::Tensor k,
+    torch::Tensor positions,
+    double base,
+    int64_t rotary_dim);
+
 // 绑定模块
 // NOTE: The filename is `_C.so` and Python imports `rec_llm_kernels._C`,
 // so the init symbol must be `PyInit__C`. Use a fixed module name to avoid
@@ -37,4 +46,12 @@ PYBIND11_MODULE(_C, m) {
 
     // Paged attention (decode-only MVP)
     ops.def("paged_attention_decode", &paged_attention_decode, "Paged Attention Decode (naive MVP)");
+
+    // RoPE
+    ops.def("apply_rope", &apply_rope, "Apply rotary embedding to q/k (Llama-style)",
+            pybind11::arg("q"),
+            pybind11::arg("k"),
+            pybind11::arg("positions"),
+            pybind11::arg("base") = 10000.0,
+            pybind11::arg("rotary_dim") = -1);
 }
