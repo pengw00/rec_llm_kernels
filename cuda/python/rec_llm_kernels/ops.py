@@ -134,7 +134,7 @@ def paged_attention_decode_v2_flashinfer(
         raise ValueError("query must have shape [B, H, D].")
     if key_cache.dim() != 4:
         raise ValueError("key_cache must have shape [NB, H, BS, D].")
-    if value_cache.sizes() != key_cache.sizes():
+    if value_cache.shape != key_cache.shape:
         raise ValueError("value_cache must match key_cache shape.")
 
     B, H, D = query.shape
