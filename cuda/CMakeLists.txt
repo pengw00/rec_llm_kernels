@@ -118,6 +118,16 @@ target_include_directories(rec_llm_kernels_lib PRIVATE
 )
 target_link_libraries(rec_llm_kernels_lib ${TORCH_LIBRARIES})
 
+# Ensure CUDA-side Torch deps are linked. Without this, importing the extension
+# can fail with undefined symbols such as:
+#   c10::cuda::c10_cuda_check_implementation(...)
+if(TARGET torch_cuda)
+    target_link_libraries(rec_llm_kernels_lib torch_cuda)
+endif()
+if(TARGET c10_cuda)
+    target_link_libraries(rec_llm_kernels_lib c10_cuda)
+endif()
+
 # Some PyTorch builds require explicitly linking torch_python for pybind11 <-> at::Tensor casters.
 if(TARGET torch_python)
     target_link_libraries(rec_llm_kernels_lib torch_python)

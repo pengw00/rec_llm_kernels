@@ -174,6 +174,16 @@ python3 -m pytest -ra tests_cuda
 - `CUDA error: invalid configuration argument` in `reshape_and_cache`: older kernel launch used a 2D thread block
   (`head_dim` x `num_heads`) which can exceed 1024 threads/block (e.g. `32 * 128 = 4096`). Rebuild after pulling
   the fix and the kernel will launch as one block per `(token, head)`.
+- Import error with an undefined symbol (example: `c10::cuda::c10_cuda_check_implementation`): your extension was
+  built/linked against a different Torch build, or is missing Torch CUDA link targets. Do a clean rebuild:
+  ```bash
+  cd /opt/dlami/nvme/rec_llm_kernels
+  source venv/bin/activate
+  rm -rf cuda/build build *.egg-info **/__pycache__
+  python3 -m pip install -e cuda -v
+  python3 -c "import rec_llm_kernels._C as _C; print('import ok')"
+  python3 -m pytest -ra tests_cuda
+  ```
 - FlashInfer import fails with `OSError: [Errno 28] No space left on device`: set `XDG_CACHE_HOME` and
   `FLASHINFER_WORKSPACE_DIR` to a larger filesystem (e.g. `/opt/dlami/nvme/.cache`), then re-import.
 
